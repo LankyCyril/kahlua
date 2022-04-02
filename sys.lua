@@ -102,4 +102,18 @@ sys.fdef = function (args)
 end
 
 
+sys.shellquote = function (path)
+    -- Leverage `printf '%q'` to shell-escape (quote) anything; yes, it is janky --
+    local bus = os.tmpname()
+    local handle = io.open(bus, "w")
+    handle:write(path)
+    handle:close()
+    local call = io.popen('`which printf` %q "$(cat ' .. bus .. ')"')
+    local quoted = call:read()
+    call:close()
+    os.remove(bus)
+    return quoted
+end
+
+
 return sys
