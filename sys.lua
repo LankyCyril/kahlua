@@ -102,6 +102,31 @@ sys.fdef = function (args)
 end
 
 
+sys.check_output = function (command, method)
+    -- Like Python's subprocess.check_output(..., shell=True) --
+    local call = io.popen(command)
+    if (method == "iterate") or (method == "i") then
+        return coroutine.wrap(function ()
+            for line in call:lines() do
+                coroutine.yield(line)
+            end
+            call:close()
+        end)
+    elseif (method == "split") or (method == "s") or (method == "\n") then
+        local data = {}
+        for line in call:lines() do
+            table.insert(data, line)
+        end
+        call:close()
+        return data
+    else
+        local data = call:read("*a")
+        call:close()
+        return data
+    end
+end
+
+
 sys.shellquote = function (path)
     -- Leverage `printf '%q'` to shell-escape (quote) anything; yes, it is janky --
     local bus = os.tmpname()
