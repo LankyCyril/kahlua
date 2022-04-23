@@ -28,12 +28,12 @@ local ffi = sys.loadglobal "ffi"
 ffi.cdef "char* strcpy(char* d, const char* s); size_t strlen(const char* s);"
 sys.C = {
     U64 = ffi.typeof("uint64_t");
-    MEDCHARRLEN = 2 ^ 24 - 1;
-    BIGCHARRLEN = 2 ^ 31 - 1;
-    MedChArr = function () return ffi.new("char[?]", 2 ^ 24 - 1) end;
-    BigChArr = function () return ffi.new("char[?]", 2 ^ 31 - 1) end;
-    ChArr = function (length) return ffi.new("char[?]", length) end;
-    charr2str = ffi.string;
+    CharArray = function (length) return ffi.new("char[?]", length) end;
+    MED_CHAR_ARRAY_LEN = 2 ^ 24 - 1;
+    MedCharArray = function () return ffi.new("char[?]", 2 ^ 24 - 1) end;
+    BIG_CHAR_ARRAY_LEN = 2 ^ 31 - 1;
+    BigCharArray = function () return ffi.new("char[?]", 2 ^ 31 - 1) end;
+    chararray2string = ffi.string;
     strcpy = ffi.C.strcpy;
     strlen = ffi.C.strlen;
 }
