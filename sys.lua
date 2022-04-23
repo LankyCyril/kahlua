@@ -32,6 +32,7 @@ sys.C = {
     BIGCHARRLEN = 2 ^ 31 - 1;
     MedChArr = function () return ffi.new("char[?]", 2 ^ 24 - 1) end;
     BigChArr = function () return ffi.new("char[?]", 2 ^ 31 - 1) end;
+    ChArr = function (length) return ffi.new("char[?]", length) end;
     charr2str = ffi.string;
     strcpy = ffi.C.strcpy;
     strlen = ffi.C.strlen;
