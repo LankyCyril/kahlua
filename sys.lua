@@ -11,16 +11,6 @@ local random_global_name = function (libname)
 end
 
 
-sys.uuid4 = function ()
-    -- Quick generation of UUID4 --
-    return ("%08x-%04x-4%03x-%x%03x-%012x"):format(
-        random(0, 0xffffffff), random(0, 0xffff),
-        random(0, 0xfff), random(8, 11), random(0, 0xfff),
-        random(0, 0xffffffffffff)
-    )
-end
-
-
 sys.loadglobal = function (libname)
     -- Load LuaJIT library `libname` into a new global environment slot --
     local gname = random_global_name(libname)
@@ -31,6 +21,28 @@ sys.loadglobal = function (libname)
     end
     _G[gname] = require(libname)
     return _G[gname]
+end
+
+
+local ffi = sys.loadglobal "ffi"
+ffi.cdef "char* strcpy(char* d, const char* s); size_t strlen(const char* s);"
+sys.C = {
+    charr2str = ffi.string;
+    strcpy = ffi.C.strcpy;
+    strlen = ffi.C.strlen;
+    BIGCHARRLEN = 2 ^ 31 - 1;
+    BigChArr = function () return ffi.new("char[?]", 2 ^ 31 - 1) end;
+    U64 = ffi.typeof("uint64_t");
+}
+
+
+sys.uuid4 = function ()
+    -- Quick generation of UUID4 --
+    return ("%08x-%04x-4%03x-%x%03x-%012x"):format(
+        random(0, 0xffffffff), random(0, 0xffff),
+        random(0, 0xfff), random(8, 11), random(0, 0xfff),
+        random(0, 0xffffffffffff)
+    )
 end
 
 
