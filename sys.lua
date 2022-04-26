@@ -1,7 +1,11 @@
 local sys = {}
 
-math.randomseed(os.time() + os.clock())
 local random = math.random
+local ffi = require "ffi"
+
+math.randomseed(os.time() + os.clock())
+ffi.cdef "char* strcpy(char* d, const char* s)"
+ffi.cdef "size_t strlen(const char* s);"
 
 
 local random_global_name = function (libname)
@@ -24,8 +28,6 @@ sys.loadglobal = function (libname)
 end
 
 
-local ffi = sys.loadglobal "ffi"
-ffi.cdef "char* strcpy(char* d, const char* s); size_t strlen(const char* s);"
 sys.C = {
     U64 = ffi.typeof("uint64_t");
     CharArray = function (length) return ffi.new("char[?]", length) end;
