@@ -1,14 +1,16 @@
 local shm = {}
 
-local ffi = require "ffi"
-local sys = require "kahlua.sys"
-local rt = ffi.load "rt"
+local ffi = require "ffi" -- ../../luajit/src/lib_ffi.c
+local sys = require "kahlua.sys" -- sys.lua
+local rt = ffi.load "rt" -- /usr/include/x86_64-linux-gnu/sys/mman.h
 
-ffi.cdef [[
+ffi.cdef --[[/usr/include/x86_64-linux-gnu/sys/mman.h]] [[
     void* mmap (void* a, size_t s, int prot, int flags, int fd, long int ofs);
     int munmap (void* a, size_t s);
     extern int shm_unlink (const char *__name);
     extern int shm_open (const char* __name, int __oflag, unsigned int __mode);
+]]
+ffi.cdef --[[unistd.h]] [[
     int ftruncate (int fd, unsigned long length);
     int close (int fd);
 ]]

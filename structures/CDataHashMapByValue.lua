@@ -1,4 +1,4 @@
-local ffi = require "ffi"
+local ffi = require "ffi" -- ../../luajit/src/lib_ffi.c
 local new, copy, sizeof = ffi.new, ffi.copy, ffi.sizeof
 
 return {

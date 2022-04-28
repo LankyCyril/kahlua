@@ -4,7 +4,7 @@
 
 local sys = {}
 
-local ffi = require "ffi"
+local ffi = require "ffi" -- ../../luajit/src/lib_ffi.c
 local random = math.random
 math.randomseed(os.time() + os.clock())
 
@@ -46,7 +46,7 @@ end
 
 sys.loadffi = function (libname, dealiased, tester, cdefs)
     -- Load and add `libname` to the global environment --
-    local ffi = sys.loadglobal "ffi"
+    local ffi = sys.loadglobal "ffi" -- ../../luajit/src/lib_ffi.c
     local gname = random_global_name(libname)
     local error_mask = "kahlua.sys.loadffi: %s"
     if _G[gname] then
@@ -76,7 +76,7 @@ end
 
 sys.is_64bit_math_valid = function ()
     -- Check that ffi/bitop operations return correct 64-bit values --
-    local ffi = sys.loadglobal "ffi"
+    local ffi = sys.loadglobal "ffi" -- ../../luajit/src/lib_ffi.c
     local error_mask = "kahlua.sys.is_64bit_math_valid: error: %s"
     local a = bit.lshift(ffi.new("uint64_t", 1), 31) - 1
     local b = bit.lshift(a, 30) + bit.rshift(a, 3) - 4096

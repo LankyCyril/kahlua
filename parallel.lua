@@ -1,8 +1,8 @@
 local parallel = {}
 
-local ffi = require "ffi"
-local effil = require "effil"
-local shm = require "kahlua.shm"
+local ffi = require "ffi" -- ../../luajit/src/lib_ffi.c
+local effil = require "effil" -- ../effil/src/cpp/lua-module.cpp
+local shm = require "kahlua.shm" -- shm.lua
 
 
 parallel.LoopingShmemThread = function (o)
@@ -21,8 +21,8 @@ parallel.LoopingShmemThread = function (o)
     local thread = {id=shmem.id, status="idle", polling=false}
  
     thread.runner = effil.thread(function ()
-        _ = cdef and require("ffi").cdef(cdef)
-        local _shmem = require("kahlua.shm").Shmem(memsize, thread.id)
+        _ = cdef and require("ffi").cdef(cdef) -- ../../luajit/src/lib_ffi.c
+        local _shmem = require("kahlua.shm").Shmem(memsize, thread.id) -- shm.lua
         local data = nil
         while in_channel:pop() ~= nil do
             if intype_cast then
