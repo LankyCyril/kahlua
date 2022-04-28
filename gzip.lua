@@ -2,8 +2,8 @@
 
 local gzip = {}
 
-local sys = require "kahlua.sys" -- sys.lua
-local ffi = sys.loadglobal "ffi" -- ../../luajit/src/lib_ffi.c
+local sys = require "kahlua.sys" -- <sys.lua>
+local ffi = sys.loadglobal "ffi" -- <../../luajit/src/lib_ffi.c>
 
 local zlib = sys.loadffi ( -- https://www.zlib.net/manual.html#Gzip
     "zlib", "z", "gzopen", [[

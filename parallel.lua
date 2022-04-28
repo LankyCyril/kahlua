@@ -2,7 +2,7 @@ local parallel = {}
 
 local ffi = require "ffi" -- <../../luajit/src/lib_ffi.c>
 local effil = require "effil" -- <../effil/src/cpp/lua-module.cpp>
-local shm = require "kahlua.shm" -- <shm>
+local shm = require "kahlua.shm" -- <shm.lua>
 
 
 parallel.LoopingShmemThread = function (o)

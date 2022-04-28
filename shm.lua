@@ -1,8 +1,8 @@
 local shm = {}
 
-local ffi = require "ffi" -- ../../luajit/src/lib_ffi.c
-local sys = require "kahlua.sys" -- sys.lua
-local rt = ffi.load "rt" -- /usr/include/x86_64-linux-gnu/sys/mman.h
+local ffi = require "ffi" -- <../../luajit/src/lib_ffi.c>
+local sys = require "kahlua.sys" -- <sys.lua>
+local rt = ffi.load "rt" -- </usr/include/x86_64-linux-gnu/sys/mman.h>
 
 ffi.cdef --[[/usr/include/x86_64-linux-gnu/sys/mman.h]] [[
     void* mmap (void* a, size_t s, int prot, int flags, int fd, long int ofs);
@@ -19,7 +19,7 @@ local O_RDWR_NONBLOCK = 6 -- O_RDWR|O_NONBLOCK
 local I_URW = 384 -- 0600 i.e. u+rw
 local PROT_READWRITE = 3 -- PROT_READ|PROT_WRITE
 local MAP_SHARED = 1
-local MAP_FAILED = ffi.cast("void*", -1) -- /usr/include/x86_64-linux-gnu/sys/mman.h
+local MAP_FAILED = ffi.cast("void*", -1) -- </usr/include/x86_64-linux-gnu/sys/mman.h>
 
 
 local MMapGarbageCollectable = function (memsize, fd, id)
