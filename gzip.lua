@@ -1,3 +1,5 @@
+-- XXX NOTE: work in progress; must implement faster direct ffi access XXX --
+
 local gzip = {}
 
 local sys = require "kahlua.sys" -- sys.lua

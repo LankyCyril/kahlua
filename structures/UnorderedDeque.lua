@@ -1,3 +1,5 @@
+-- XXX NOTE: Work in progress XXX --
+
 local UnorderedDeque = {}
 
 
