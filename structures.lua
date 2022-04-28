@@ -1,5 +1,5 @@
 return {
-    CharArrayTable = require "kahlua.structures.CharArrayTable"; -- structures/CharArrayTable.lua
+    CDataHashMapByValue = require "kahlua.structures.CDataHashMapByValue"; -- structures/CDataHashMapByValue.lua
     OrderedTable = require "kahlua.structures.OrderedTable"; -- structures/OrderedTable.lua
     HashMapU64 = require "kahlua.structures.HashMapU64"; -- structures/HashMapU64.lua
     DiGraph = require "kahlua.structures.DiGraph"; -- structures/DiGraph.lua
