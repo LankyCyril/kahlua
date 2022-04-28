@@ -1,11 +1,18 @@
+-- TODO: reconsider `loadglobal` and `loadffi`. However, I've seen strange
+-- segfaults that were resolved by loading something "once" to the same _G[key]
+-- instead of locally requiring in multiple times -- needs testing.
+
 local sys = {}
 
-local random = math.random
 local ffi = require "ffi"
-
+local random = math.random
 math.randomseed(os.time() + os.clock())
-ffi.cdef "char* strcpy(char* d, const char* s)"
-ffi.cdef "size_t strlen(const char* s);"
+
+
+sys.C = {
+    strcpy = ffi.cdef("char* strcpy(char* d, const char* s)") or ffi.C.strcpy;
+    strlen = ffi.cdef("size_t strlen(const char* s);") or ffi.C.strlen;
+}
 
 
 local random_global_name = function (libname)
@@ -28,25 +35,11 @@ sys.loadglobal = function (libname)
 end
 
 
-sys.C = {
-    U64 = ffi.typeof("uint64_t");
-    CharArray = function (length) return ffi.new("char[?]", length) end;
-    MED_CHAR_ARRAY_LEN = 2 ^ 24 - 1;
-    MedCharArray = function () return ffi.new("char[?]", 2 ^ 24 - 1) end;
-    BIG_CHAR_ARRAY_LEN = 2 ^ 31 - 1;
-    BigCharArray = function () return ffi.new("char[?]", 2 ^ 31 - 1) end;
-    chararray2string = ffi.string;
-    strcpy = ffi.C.strcpy;
-    strlen = ffi.C.strlen;
-}
-
-
 sys.uuid4 = function ()
     -- Quick generation of UUID4 --
     return ("%08x-%04x-4%03x-%x%03x-%012x"):format(
-        random(0, 0xffffffff), random(0, 0xffff),
-        random(0, 0xfff), random(8, 11), random(0, 0xfff),
-        random(0, 0xffffffffffff)
+        random(0, 0xffffffff), random(0, 0xffff), random(0, 0xfff),
+        random(8, 11), random(0, 0xfff), random(0, 0xffffffffffff)
     )
 end
 
