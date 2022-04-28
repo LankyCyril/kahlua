@@ -24,8 +24,8 @@ parallel.LoopingShmemThread = function (o)
  
     thread.runner = effil.thread(function ()
         -- Run `func` for each incoming piece of cdata, notified by non-`nil` ping on `in_channel`; finish when next ping is `nil` --
-        _ = cdef and require("ffi").cdef(cdef) -- <../../luajit/src/lib_ffi.c>
-        local _shmem = require("kahlua.shm").Shmem(memsize, thread.id) -- <shm>
+        _ = cdef and require("ffi").cdef(cdef)
+        local _shmem = require("kahlua.shm").Shmem(memsize, thread.id, "unlink")
         local cdata, luadata, ping, success = nil, nil, nil, true
         while true do
             luadata, ping = in_channel:pop()
@@ -78,10 +78,12 @@ parallel.LoopingShmemThread = function (o)
  
     thread.read = function (self, timeout_ms, _type)
         -- Read that blocks for `timeout_ms` ms, or indefinitely if `timeout_ms` is `nil`; returns function result or `nil` --
-        if (not thread.polling) and (thread.state.status == "presenting") then -- XXX status ~= "idle"
+        if not thread.polling then -- XXX TODO nasty race conditions if more than one poller
             thread.polling = true
-            local cdata = nil
-            local luadata, ping = out_channel:pop(timeout_ms, "ms")
+            local cdata, luadata, ping = nil, nil, nil
+            if (timeout_ms == nil) or (thread.state.status == "presenting") then
+                luadata, ping = out_channel:pop(timeout_ms, "ms")
+            end
             _ = thread.state.err and error(thread.state.err)
             if ping then
                 if outtype_cast then

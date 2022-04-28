@@ -22,36 +22,35 @@ local MAP_SHARED = 1
 local MAP_FAILED = ffi.cast("void*", -1) -- </usr/include/x86_64-linux-gnu/sys/mman.h>
 
 
-local MMapGarbageCollectable = function (memsize, fd, id)
+local MMapGarbageCollectable = function (memsize, fd, id, unlink)
     local ptr = rt.mmap(NULL, memsize, PROT_READWRITE, MAP_SHARED, fd, 0)
     ffi.C.close(fd)
     if (ptr == NULL) or (ptr == MAP_FAILED) then
         rt.shm_unlink(id)
         error("mmap")
-    else
-        return ffi.gc(ptr, function (ptr)
-            ffi.C.munmap(ptr, memsize)
-            rt.shm_unlink(id)
-        end)
+    elseif unlink then
+        rt.shm_unlink(id)
     end
+    return ffi.gc(ptr, function (ptr)
+        ffi.C.munmap(ptr, memsize)
+        rt.shm_unlink(id)
+    end)
 end
 
 
-shm.Shmem = function (memsize, id)
-    local id, fd, ptr, fill, copy, sizeof, typeof =
-        id, -1, NULL, ffi.fill, ffi.copy, ffi.sizeof, ffi.typeof
-    if not id then -- weird luajit behavior: new files aren't created with ffi
+shm.Shmem = function (memsize, id, unlink)
+    local id, fill, copy, sizeof, typeof =
+        id, ffi.fill, ffi.copy, ffi.sizeof, ffi.typeof
+    if (not id) and unlink then
+        error("Shmem: `unlink` cannot be used without an existing `id`")
+    elseif not id then -- weird luajit behavior: new files aren't created with ffi
         id = sys.uuid4()
         pcall(function() io.open("/dev/shm/" .. id, "w"):close() end)
     end
-    fd = rt.shm_open(id, O_RDWR_NONBLOCK, I_URW)
-    if (fd or -1) < 0 then
-        error("shm_open")
-    elseif ffi.C.ftruncate(fd, memsize) < 0 then
-        error("ftruncate")
-    else
-        ptr = MMapGarbageCollectable(memsize, fd, id) -- XXX
-    end
+    local fd = rt.shm_open(id, O_RDWR_NONBLOCK, I_URW)
+    _ = ((fd or -1) >= 0) or error("shm_open")
+    _ = (ffi.C.ftruncate(fd, memsize) >= 0) or error("ftruncate")
+    local ptr = MMapGarbageCollectable(memsize, fd, id, unlink) -- XXX
     return {
         id=id, memsize=memsize, ptr=ptr,
         clear = function (self) fill(ptr, memsize, 0) end;
