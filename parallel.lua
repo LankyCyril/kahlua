@@ -67,9 +67,8 @@ parallel.LoopingShmemThread = function (o)
         -- Read that blocks for `timeout_ms` ms, or indefinitely if `timeout_ms` is `nil`; returns function result or `nil` --
         if not thread.polling then
             thread.polling = true
+            local data = nil
             if out_channel:pop(timeout_ms, "ms") then
-                thread.polling = false
-                local data = nil
                 if outtype_cast then
                     thread.status = "casting_out"
                     data = shmem:cast(outtype_cast)
@@ -78,8 +77,9 @@ parallel.LoopingShmemThread = function (o)
                     data = shmem:read(outtype)
                 end
                 thread.status = "idle"
-                return data
             end
+            thread.polling = false
+            return data
         end
     end
  
