@@ -78,7 +78,7 @@ parallel.LoopingShmemThread = function (o)
  
     thread.read = function (self, timeout_ms, _type)
         -- Read that blocks for `timeout_ms` ms, or indefinitely if `timeout_ms` is `nil`; returns function result or `nil` --
-        if not thread.polling then
+        if (not thread.polling) and (thread.state.status == "presenting") then -- XXX status ~= "idle"
             thread.polling = true
             local cdata = nil
             local luadata, ping = out_channel:pop(timeout_ms, "ms")
@@ -96,6 +96,10 @@ parallel.LoopingShmemThread = function (o)
             thread.polling = false
             return cdata, luadata
         end
+    end
+ 
+    thread.status = function (self)
+        return thread.state.status, thread.state.err
     end
  
     return thread
