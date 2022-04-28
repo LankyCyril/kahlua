@@ -76,8 +76,11 @@ parallel.LoopingShmemThread = function (o)
         end
     end
  
-    thread.read = function (self, timeout_ms, _type)
+    thread.read = function (self, timeout_ms, last)
         -- Read that blocks for `timeout_ms` ms, or indefinitely if `timeout_ms` is `nil`; returns function result or `nil` --
+        if last then
+            thread:join()
+        end
         if not thread.polling then -- XXX TODO nasty race conditions if more than one poller
             thread.polling = true
             local cdata, luadata, ping = nil, nil, nil
