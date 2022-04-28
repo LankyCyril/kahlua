@@ -21,43 +21,48 @@ parallel.LoopingShmemThread = function (o)
     local thread = {id=shmem.id, status="idle", polling=false}
  
     thread.runner = effil.thread(function ()
-        -- Run `func` for each incoming piece of data, notified by non-`nil` message on `in_channel`; finish when next message is `nil` --
+        -- Run `func` for each incoming piece of cdata, notified by non-`nil` ping on `in_channel`; finish when next ping is `nil` --
         _ = cdef and require("ffi").cdef(cdef) -- <../../luajit/src/lib_ffi.c>
         local _shmem = require("kahlua.shm").Shmem(memsize, thread.id) -- <shm>
-        local data = nil
-        while in_channel:pop() ~= nil do
-            if intype_cast then
-                thread.status = "casting_in"
-                data = _shmem:cast(intype_cast)
+        local cdata, luadata, ping = nil, nil, nil
+        while true do
+            luadata, ping = in_channel:pop()
+            if ping == nil then
+                break
             else
-                thread.status = "importing"
-                data = _shmem:read(intype)
+                if intype_cast then
+                    thread.status = "casting_in"
+                    cdata = _shmem:cast(intype_cast)
+                else
+                    thread.status = "importing"
+                    cdata = _shmem:read(intype)
+                end
+                thread.status = "running"
+                cdata, luadata = func(cdata, luadata)
+                if cdata ~= nil then -- not modified in place
+                    _shmem:write(cdata, outtype)
+                end
+                thread.status = "presenting"
+                out_channel:push(luadata, true)
             end
-            thread.status = "running"
-            data = func(data)
-            if data ~= nil then -- not modified in place
-                _shmem:write(data, outtype)
-            end
-            thread.status = "presenting"
-            out_channel:push(true)
         end
         thread.status = "stopped"
-        out_channel:push(nil)
+        out_channel:push(nil, nil)
     end)()
  
     thread.join = function (self)
         -- Wait for thread to finish queued loops, then join and stop; does not collect results of function --
-        in_channel:push(nil)
+        in_channel:push(nil, nil)
         thread.status = "joining"
         thread.runner:wait()
         thread.status = "stopped"
     end
  
-    thread.write = function (self, data)
+    thread.write = function (self, cdata, luadata)
         -- Non-blocking write that is allowed to fail if thread is busy (not "idle"); returns `true` on success, `nil` otherwise --
         if thread.status == "idle" then
-            shmem:write(data, intype)
-            in_channel:push(true)
+            shmem:write(cdata, intype)
+            in_channel:push(luadata, true)
             thread.status = "data_queued"
             return true
         end
@@ -67,19 +72,20 @@ parallel.LoopingShmemThread = function (o)
         -- Read that blocks for `timeout_ms` ms, or indefinitely if `timeout_ms` is `nil`; returns function result or `nil` --
         if not thread.polling then
             thread.polling = true
-            local data = nil
-            if out_channel:pop(timeout_ms, "ms") then
+            local cdata = nil
+            local luadata, ping = out_channel:pop(timeout_ms, "ms")
+            if ping then
                 if outtype_cast then
                     thread.status = "casting_out"
-                    data = shmem:cast(outtype_cast)
+                    cdata = shmem:cast(outtype_cast)
                 else
                     thread.status = "exporting"
-                    data = shmem:read(outtype)
+                    cdata = shmem:read(outtype)
                 end
                 thread.status = "idle"
             end
             thread.polling = false
-            return data
+            return cdata, luadata
         end
     end
  
