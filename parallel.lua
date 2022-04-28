@@ -31,22 +31,26 @@ parallel.LoopingShmemThread = function (o)
             luadata, ping = in_channel:pop()
             if ping == nil then
                 break
+            elseif intype_cast then
+                thread.state.status = "casting_in"
+                cdata = _shmem:cast(intype_cast)
             else
-                if intype_cast then
-                    thread.state.status = "casting_in"
-                    cdata = _shmem:cast(intype_cast)
-                else
-                    thread.state.status = "importing"
-                    cdata = _shmem:read(intype)
-                end
-                thread.state.status = "running"
-                cdata, luadata = func(cdata, luadata)
-                if cdata ~= nil then -- not modified in place
-                    _shmem:write(cdata, outtype)
-                end
-                thread.state.status = "presenting"
-                out_channel:push(luadata, true)
+                thread.state.status = "importing"
+                cdata = _shmem:read(intype)
             end
+            thread.state.status = "running"
+            success, cdata, luadata = pcall(function ()
+                return func(cdata, luadata)
+            end)
+            if not success then
+                thread.state.status, thread.state.err = "failed", cdata
+                break
+            end
+            if cdata ~= nil then -- not modified in place
+                _shmem:write(cdata, outtype)
+            end
+            thread.state.status = "presenting"
+            out_channel:push(luadata, true)
         end
         thread.state.status = "stopped"
         out_channel:push(nil, nil)
@@ -54,10 +58,12 @@ parallel.LoopingShmemThread = function (o)
  
     thread.join = function (self)
         -- Wait for thread to finish queued loops, then join and stop; does not collect results of function --
+        _ = thread.state.err and error(thread.state.err)
         in_channel:push(nil, nil)
         thread.state.status = "joining"
         thread.runner:wait()
         thread.state.status = "stopped"
+        _ = thread.state.err and error(thread.state.err)
     end
  
     thread.write = function (self, cdata, luadata)
@@ -76,6 +82,7 @@ parallel.LoopingShmemThread = function (o)
             thread.polling = true
             local cdata = nil
             local luadata, ping = out_channel:pop(timeout_ms, "ms")
+            _ = thread.state.err and error(thread.state.err)
             if ping then
                 if outtype_cast then
                     thread.state.status = "casting_out"
