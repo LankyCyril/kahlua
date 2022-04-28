@@ -13,7 +13,7 @@ parallel.LoopingShmemThread = function (o)
     if (not intype) or (not outtype) then
         error("LoopingShmemThread: intype and outtype must be defined")
     elseif cdef then
-        ffi.cdef(cdef)
+        pcall(function () ffi.cdef(cdef) end)
     end
     local memsize = math.max(ffi.sizeof(intype), ffi.sizeof(outtype))
     local shmem = shm.Shmem(memsize)
