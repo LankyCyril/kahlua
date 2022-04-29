@@ -39,11 +39,12 @@ end
 
 
 shm.Shmem = function (memsize, id, unlink)
+    -- TODO: fall back onto /tmp --
     local id, fill, copy, sizeof, typeof =
         id, ffi.fill, ffi.copy, ffi.sizeof, ffi.typeof
     if (not id) and unlink then
         error("Shmem: `unlink` cannot be used without an existing `id`")
-    elseif not id then -- weird luajit behavior: new files aren't created with ffi
+    elseif not id then -- weird luajit behavior: new files not created with ffi
         id = sys.uuid4()
         pcall(function() io.open("/dev/shm/" .. id, "w"):close() end)
     end
