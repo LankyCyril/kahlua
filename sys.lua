@@ -82,11 +82,17 @@ sys.check_output = function (command, method)
 end
 
 
-sys.shellquote = function (path)
-    -- Leverage `printf '%q'` to shell-escape (quote) anything; yes, it is janky --
+sys.shellquote = function (s)
+    -- Shell-escape (quote) anything; see https://stackoverflow.com/a/3669819 --
+    return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+
+sys.printf_q = function (s)
+    -- Leverage `printf '%q'` to shell-escape (quote) anything; yes, it is janky, but uses the "proper" tool --
     local bus = os.tmpname()
     local handle = io.open(bus, "w")
-    handle:write(path)
+    handle:write(s)
     handle:close()
     local call = io.popen('`which printf` %q "$(cat ' .. bus .. ')"')
     local quoted = call:read()
