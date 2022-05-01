@@ -20,7 +20,11 @@ parallel.LoopingShmemThread = function (o)
             local shm = require "kahlua.shm" -- <backend/lualibs/kahlua/shm.lua>
             local shmem = shm.Shmem(ffi.sizeof(o.ctype), shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
-            o[1](cdata, ping, pong)
+            ;(o.func or o[1])(
+                cdata,
+                function () return ping.pop(ping) end,
+                function () return pong.push(pong, true) end
+            )
         end)();
         release = function (self)
             while self.lock:size() > 0 do
@@ -42,6 +46,7 @@ parallel.LoopingShmemThreadPool = function (options)
     local ERROR_FORBID_ADD = "Cannot add threads to an already active pool"
  
     local _yield_or_exhaust = function (self, action, previous_thread, timeout_ms)
+        -- I promise docstrings sometime in the future --
         if previous_thread then
             previous_thread.lock:push(true)
             previous_thread.ping:push(true)
