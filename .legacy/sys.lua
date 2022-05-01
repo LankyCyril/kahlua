@@ -3,6 +3,16 @@ local sys = {}
 -- segfaults that were resolved by loading something "once" to the same _G[key]
 -- instead of locally requiring in multiple times -- needs testing.
 
+local random = math.random
+math.randomseed(os.time() + os.clock())
+
+
+local random_global_name = function (libname)
+    -- Almost guaranteed unique name (same number of bits as UUID4) --
+    local r = math.ceil(random() * (2^128))
+    return ("%.0f_%s"):format(r, libname)
+end
+
 
 sys.loadglobal = function (libname)
     -- Load LuaJIT library `libname` into a new global environment slot --
@@ -19,7 +29,7 @@ end
 
 sys.loadffi = function (libname, dealiased, tester, cdefs)
     -- Load and add `libname` to the global environment --
-    local ffi = sys.loadglobal "ffi" -- <../../luajit/src/lib_ffi.c>
+    local ffi = sys.loadglobal "ffi" --[[../../luajit/src/lib_ffi.c]]
     local gname = random_global_name(libname)
     local error_mask = "kahlua.sys.loadffi: %s"
     if _G[gname] then

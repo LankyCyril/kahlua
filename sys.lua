@@ -1,6 +1,6 @@
 local sys = {}
 
-local ffi = require "ffi" -- <../../luajit/src/lib_ffi.c>
+local ffi = require "ffi" --[[../../luajit/src/lib_ffi.c]]
 local random = math.random
 math.randomseed(os.time() + os.clock())
 
@@ -9,13 +9,6 @@ sys.C = {
     strcpy = ffi.cdef("char* strcpy(char* d, const char* s)") or ffi.C.strcpy;
     strlen = ffi.cdef("size_t strlen(const char* s);") or ffi.C.strlen;
 }
-
-
-local random_global_name = function (libname)
-    -- Almost guaranteed unique name (same number of bits as UUID4) --
-    local r = math.ceil(random() * (2^128))
-    return ("%.0f_%s"):format(r, libname)
-end
 
 
 sys.uuid4 = function ()
@@ -29,7 +22,6 @@ end
 
 sys.is_64bit_math_valid = function ()
     -- Check that ffi/bitop operations return correct 64-bit values --
-    --local ffi = require "ffi" -- <../../luajit/src/lib_ffi.c>
     local error_mask = "kahlua.sys.is_64bit_math_valid: error: %s"
     local a = bit.lshift(ffi.new("uint64_t", 1), 31) - 1
     local b = bit.lshift(a, 30) + bit.rshift(a, 3) - 4096
