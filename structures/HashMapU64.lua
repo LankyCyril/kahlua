@@ -1,7 +1,7 @@
 local HashMapU64 = {}
 
 local sys = require "kahlua.sys" -- <sys.lua>
-local ffi = sys.loadglobal "ffi" -- <../../luajit/src/lib_ffi.c>
+local ffi = require "ffi" -- <../../luajit/src/lib_ffi.c>
 
 local tobit, band, bor, lshift, rshift, typeof =
     bit.tobit, bit.band, bit.bor, bit.lshift, bit.rshift, ffi.typeof
