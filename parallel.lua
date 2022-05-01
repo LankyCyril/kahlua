@@ -1,7 +1,7 @@
 local parallel = {}
 
-local ffi = require "ffi" --[[../../luajit/src/lib_ffi.c]]
-local effil = require "effil" --[[../effil/src/cpp/lua-module.cpp]]
+local ffi = require "ffi"
+local effil = require "effil" --[[../../rocks/lib/luarocks/rocks-5.1/effil/1.2-0/doc/README.md]]
 local shm = require "kahlua.shm" --[[shm.lua]]
 
 
@@ -15,7 +15,7 @@ parallel.LoopingShmemThread = function (o)
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         thread = effil.thread(function (...)
-            local ffi = require "ffi" --[[backend/luajit/src/lib_ffi.c]]
+            local ffi = require "ffi"
             ffi.cdef(o.cdefs or "")
             local shm = require "kahlua.shm" --[[shm.lua]]
             local shmem = shm.Shmem(ffi.sizeof(o.ctype), shmem_id, "unlink")

@@ -1,6 +1,6 @@
 local shm = {}
 
-local ffi = require "ffi" --[[../../luajit/src/lib_ffi.c]]
+local ffi = require "ffi"
 local sys = require "kahlua.sys" --[[sys.lua]]
 local rt = ffi.load "rt" --[[/usr/include/x86_64-linux-gnu/sys/mman.h]]
 

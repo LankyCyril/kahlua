@@ -1,6 +1,6 @@
 local sys = {}
 
-local ffi = require "ffi" --[[../../luajit/src/lib_ffi.c]]
+local ffi = require "ffi"
 local random = math.random
 math.randomseed(os.time() + os.clock())
 
