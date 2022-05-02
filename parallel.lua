@@ -5,18 +5,38 @@ local effil = require "effil" --[[../../rocks/lib/luarocks/rocks-5.1/effil/1.2-0
 local shm = require "kahlua.shm" --[[shm.lua]]
 
 
+local wrapped_cdefs = function (cdefs, ignore_redefinitions)
+    for i = 1, #cdefs do
+        if ignore_redefinitions then
+            local success, err = pcall(function () ffi.cdef(cdefs[i]) end)
+            if not success then
+                if not err:match(" attempt to redefine '.+'") then
+                    error(err)
+                end
+            end
+        else
+            ffi.cdef(cdefs[i])
+        end
+    end
+end
+
+
 local LoopingShmemThread = function (o)
     -- Loop function `func(cdata, ping, pong)` that resumes on ping, modifies cdata in shared memory in-place, and pauses with pong --
+ 
     local shmem = shm.Shmem(ffi.sizeof(o.ctype))
     local shmem_id = shmem.id
     local ping, pong, lock = effil.channel(), effil.channel(), effil.channel()
+ 
     return {
         thread_nr = o.thread_nr; ping = ping; pong = pong; lock = lock;
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         effil_thread = effil.thread(function (...)
             local ffi, shm = require "ffi", require "kahlua.shm" --[[shm.lua]]
-            ffi.cdef(o.cdefs or "")
+            for i = 1, #(o.cdefs or {}) do
+                ffi.cdef(o.cdefs[i])
+            end
             local shmem = shm.Shmem(ffi.sizeof(o.ctype), shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
             ;(o.func or o[1])(
@@ -47,7 +67,7 @@ end
 parallel.LoopingShmemThreadPool = function (options)
     -- Docstring goes here lol --
  
-    ffi.cdef(options.cdefs or "")
+    wrapped_cdefs(options.cdefs or {}, options.ignore_redefinitions)
     local ERROR_FORBID_ADD = "Cannot add threads to an already active pool"
  
     local _yield_or_exhaust = function (self, action, previous_thread, timeout_ms)
