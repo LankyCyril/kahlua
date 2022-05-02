@@ -2,7 +2,18 @@ local sys = {}
 
 local ffi = require "ffi"
 local random = math.random
+local unpack = unpack or table.unpack
 math.randomseed(os.time() + os.clock())
+
+
+sys.gcrun = function (main, ...)
+    -- Run entrypoint function, collect garbage explicitly, exit with result of entrypoint function --
+    local args = {...}
+    local success, returncode = pcall(function () return main(unpack(args)) end)
+    collectgarbage()
+    collectgarbage()
+    _ = success and os.exit(returncode or 0) error(returncode)
+end
 
 
 sys.C = {
