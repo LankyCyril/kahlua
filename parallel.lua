@@ -5,7 +5,7 @@ local effil = require "effil" --[[../../rocks/lib/luarocks/rocks-5.1/effil/1.2-0
 local shm = require "kahlua.shm" --[[shm.lua]]
 
 
-parallel.LoopingShmemThread = function (o)
+local LoopingShmemThread = function (o)
     -- Loop function `func(cdata, ping, pong)` that resumes on ping, modifies cdata in shared memory in-place, and pauses with pong --
     local shmem = shm.Shmem(ffi.sizeof(o.ctype))
     local shmem_id = shmem.id
@@ -14,7 +14,7 @@ parallel.LoopingShmemThread = function (o)
         ping = ping; pong = pong; lock = lock;
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
         cdata = shmem:cast(o.ctype_cast or o.ctype);
-        thread = effil.thread(function (...)
+        effil_thread = effil.thread(function (...)
             local ffi = require "ffi"
             ffi.cdef(o.cdefs or "")
             local shm = require "kahlua.shm" --[[shm.lua]]
@@ -26,13 +26,21 @@ parallel.LoopingShmemThread = function (o)
                 function () return pong.push(pong, true) end
             )
         end)();
+        hold = function (self)
+            self.lock:push(true)
+            self.ping:push(true)
+        end;
         release = function (self)
             while self.lock:size() > 0 do
                 self.lock:pop()
             end
         end;
+        join = function (self)
+            self.ping:push(nil)
+            self.effil_thread:wait()
+        end;
         _is_completed = function (self)
-            local status, e = self.thread:status()
+            local status, e = self.effil_thread:status()
             return (status == "failed") and error(e) or (status == "completed")
         end;
     }
@@ -48,21 +56,18 @@ parallel.LoopingShmemThreadPool = function (options)
     local _yield_or_exhaust = function (self, action, previous_thread, timeout_ms)
         -- I promise docstrings sometime in the future --
         if previous_thread then
-            previous_thread.lock:push(true)
-            previous_thread.ping:push(true)
+            previous_thread:hold()
         elseif action == "yield" then
             self.add = function () error(ERROR_FORBID_ADD) end
             return self.threads[1], self.threads[1].cdata
         end
         if not timeout_ms then
             for _, thread in ipairs(self.threads) do
-                thread.ping:push(nil)
-                thread.thread:wait()
+                thread:join()
             end
         end
         while true do
-            local n_completed = 0
-            for _, thread in ipairs(self.threads) do
+            local n_completed = 0; for _, thread in ipairs(self.threads) do
                 if thread:_is_completed() then
                     if thread.pong:size() > 0 then
                         coroutine.yield(thread, thread.cdata)
@@ -81,11 +86,13 @@ parallel.LoopingShmemThreadPool = function (options)
     end
  
     return {
-        cdefs = options.cdefs; n_threads = 0; threads = {};
+        cdefs = options.cdefs; ordered = options.ordered;
+        threads = {}; n_threads = 0;
         add = function (self, o)
             self.n_threads = self.n_threads + 1
-            self.threads[self.n_threads] = parallel.LoopingShmemThread{
-                cdefs=self.cdefs, ctype=o.ctype, ctype_cast=o.ctype_cast, o[1],
+            self.threads[self.n_threads] = LoopingShmemThread{
+                cdefs=self.cdefs, ctype=o.ctype, ctype_cast=o.ctype_cast,
+                thread_no=self.n_threads, (o.func or o[1]),
             }
         end;
         yield = function (s, ...) return _yield_or_exhaust(s, "yield", ...) end;
