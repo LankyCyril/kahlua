@@ -11,13 +11,12 @@ local LoopingShmemThread = function (o)
     local shmem_id = shmem.id
     local ping, pong, lock = effil.channel(), effil.channel(), effil.channel()
     return {
-        ping = ping; pong = pong; lock = lock;
+        thread_nr = o.thread_nr; ping = ping; pong = pong; lock = lock;
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         effil_thread = effil.thread(function (...)
-            local ffi = require "ffi"
+            local ffi, shm = require "ffi", require "kahlua.shm" --[[shm.lua]]
             ffi.cdef(o.cdefs or "")
-            local shm = require "kahlua.shm" --[[shm.lua]]
             local shmem = shm.Shmem(ffi.sizeof(o.ctype), shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
             ;(o.func or o[1])(
@@ -31,9 +30,7 @@ local LoopingShmemThread = function (o)
             self.ping:push(true)
         end;
         release = function (self)
-            while self.lock:size() > 0 do
-                self.lock:pop()
-            end
+            self.lock:pop()
         end;
         join = function (self)
             self.ping:push(nil)
@@ -55,8 +52,10 @@ parallel.LoopingShmemThreadPool = function (options)
  
     local _yield_or_exhaust = function (self, action, previous_thread, timeout_ms)
         -- I promise docstrings sometime in the future --
+        local next_nr = 1
         if previous_thread then
             previous_thread:hold()
+            next_nr = (previous_thread.thread_nr % self.n_threads) + 1
         elseif action == "yield" then
             self.add = function () error(ERROR_FORBID_ADD) end
             return self.threads[1], self.threads[1].cdata
@@ -73,10 +72,12 @@ parallel.LoopingShmemThreadPool = function (options)
                         coroutine.yield(thread, thread.cdata)
                     end
                     n_completed = n_completed + 1
-                elseif thread.pong:pop(timeout_ms, "ms") then
-                    coroutine.yield(thread, thread.cdata)
-                elseif timeout_ms and (thread.lock:size() == 0) then
-                    return thread, thread.cdata
+                elseif (not self.ordered) or (thread.thread_nr == next_nr) then
+                    if thread.pong:pop(timeout_ms, "ms") then
+                        coroutine.yield(thread, thread.cdata)
+                    elseif timeout_ms and (thread.lock:size() == 0) then
+                        return thread, thread.cdata
+                    end
                 end
             end
             if n_completed == self.n_threads then
@@ -92,7 +93,7 @@ parallel.LoopingShmemThreadPool = function (options)
             self.n_threads = self.n_threads + 1
             self.threads[self.n_threads] = LoopingShmemThread{
                 cdefs=self.cdefs, ctype=o.ctype, ctype_cast=o.ctype_cast,
-                thread_no=self.n_threads, (o.func or o[1]),
+                thread_nr=self.n_threads, (o.func or o[1]),
             }
         end;
         yield = function (s, ...) return _yield_or_exhaust(s, "yield", ...) end;
