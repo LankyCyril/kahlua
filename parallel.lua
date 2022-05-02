@@ -25,7 +25,7 @@ local LoopingShmemThread = function (o)
                 function () return pong.push(pong, true) end
             )
         end)();
-        hold = function (self)
+        let_compute = function (self)
             self.lock:push(true)
             self.ping:push(true)
         end;
@@ -54,7 +54,7 @@ parallel.LoopingShmemThreadPool = function (options)
         -- I promise docstrings sometime in the future --
         local next_nr = 1
         if previous_thread then
-            previous_thread:hold()
+            previous_thread:let_compute()
             next_nr = (previous_thread.thread_nr % self.n_threads) + 1
         elseif action == "yield" then
             self.add = function () error(ERROR_FORBID_ADD) end
@@ -66,7 +66,8 @@ parallel.LoopingShmemThreadPool = function (options)
             end
         end
         while true do
-            local n_completed = 0; for _, thread in ipairs(self.threads) do
+            local n_completed = 0
+            for _, thread in ipairs(self.threads) do
                 if thread:_is_completed() then
                     if thread.pong:size() > 0 then
                         coroutine.yield(thread, thread.cdata)
