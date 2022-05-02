@@ -20,11 +20,19 @@ ffi.cdef --[[https://www.zlib.net/manual.html#Gzip]] [[
 gzip.gzopen = function (filename, mode, logger)
     -- Garbage-collectable gzFile_s* --
     local FILE = zlib.gzopen(filename, mode)
-    _ = logger and logger("gzip: opened " .. tostring(FILE))
-    return ffi.gc(FILE, function (FILE)
-        zlib.gzclose(FILE)
-        _ = logger and logger("gzip: closed " .. tostring(FILE))
-    end)
+    if FILE == nil then
+        pcall(function () ffi.cdef "char* strerror(int errnum);" end)
+        local strerror_ok, err = pcall(function ()
+            return ffi.string(ffi.C.strerror(ffi.errno()))
+        end)
+        error("gzip.gzopen: " .. (strerror_ok and err or "unspecified error"))
+    else
+        _ = logger and logger("gzip: opened " .. tostring(FILE))
+        return ffi.gc(FILE, function (FILE)
+            zlib.gzclose(FILE)
+            _ = logger and logger("gzip: closed " .. tostring(FILE))
+        end)
+    end
 end
 
 
