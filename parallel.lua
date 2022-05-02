@@ -61,14 +61,14 @@ parallel.LoopingShmemThreadPool = function (options)
             end
         end
         while true do
-            local n_completed = 0;
+            local n_completed = 0
             for _, thread in ipairs(self.threads) do
                 if thread:_is_completed() then
                     if thread.pong:size() > 0 then
                         coroutine.yield(thread, thread.cdata)
                     end
                     n_completed = n_completed + 1
-                elseif thread.pong:pop(timeout_ms) then
+                elseif thread.pong:pop(timeout_ms, "ms") then
                     coroutine.yield(thread, thread.cdata)
                 elseif timeout_ms and (thread.lock:size() == 0) then
                     return thread, thread.cdata
