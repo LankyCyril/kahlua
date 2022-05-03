@@ -28,12 +28,12 @@ gzip.gzopen = function (filename, mode, logger)
         error("gzip.gzopen: " .. (strerror_ok and err or "unspecified error"))
     else
         _ = logger and logger(
-            ("gzip: opened %s as %s (%s)"):format(filename, FILE, mode)
+            ("gzip.gzopen: %s as %s (%s)"):format(filename, FILE, mode)
         )
         return ffi.gc(FILE, function (FILE)
             zlib.gzclose(FILE)
             _ = logger and logger(
-                ("gzip: closed %s as %s (%s)"):format(filename, FILE, mode)
+                ("gzip.gzclose: %s, was %s (%s)"):format(filename, FILE, mode)
             )
         end)
     end
