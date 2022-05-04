@@ -5,45 +5,25 @@ local effil = require "effil" --[[../../rocks/lib/luarocks/rocks-5.1/effil/1.2-0
 local shm = require "kahlua.shm" --[[shm.lua]]
 
 
-local wrapped_cdefs = function (cdefs, ignore_redefinitions)
-    for i = 1, #cdefs do
-        if ignore_redefinitions then
-            local success, err = pcall(function () ffi.cdef(cdefs[i]) end)
-            if not success then
-                if not err:match(" attempt to redefine '.+'") then
-                    error(err)
-                end
-            end
-        else
-            ffi.cdef(cdefs[i])
-        end
-    end
-end
-
-
 local LoopingShmemThread = function (o)
-    -- Loop function `func(cdata, ping, pong)` that resumes on ping, modifies cdata in shared memory in-place, and pauses with pong --
- 
-    local shmem = shm.Shmem(ffi.sizeof(o.ctype))
+    -- Gets closure from `o.method` (or `o[1]`); runs this closure on `cdata` with each `yield` of LoopingShmemThreadPool --
+    local memsize = o.memsize or ffi.sizeof(o.ctype)
+    local shmem = shm.Shmem(memsize)
     local shmem_id = shmem.id
     local ping, pong, lock = effil.channel(), effil.channel(), effil.channel()
- 
     return {
         thread_nr = o.thread_nr; ping = ping; pong = pong; lock = lock;
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         effil_thread = effil.thread(function (...)
-            local ffi, shm = require "ffi", require "kahlua.shm" --[[shm.lua]]
-            for i = 1, #(o.cdefs or {}) do
-                ffi.cdef(o.cdefs[i])
-            end
-            local shmem = shm.Shmem(ffi.sizeof(o.ctype), shmem_id, "unlink")
+            local shm = require "kahlua.shm" --[[shm.lua]]
+            local closure = (o.method or o[1])()
+            local shmem = shm.Shmem(memsize, shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
-            ;(o.func or o[1])(
-                cdata,
-                function () return ping.pop(ping) end,
-                function () return pong.push(pong, true) end
-            )
+            while ping:pop() do
+                closure(cdata)
+                pong:push(true)
+            end
         end)();
         let_compute = function (self)
             self.lock:push(true)
@@ -67,7 +47,6 @@ end
 parallel.LoopingShmemThreadPool = function (options)
     -- Docstring goes here lol --
  
-    wrapped_cdefs(options.cdefs or {}, options.ignore_redefinitions)
     local ERROR_FORBID_ADD = "Cannot add threads to an already active pool"
  
     local _yield_or_exhaust = function (self, action, previous_thread, timeout_ms)
@@ -108,13 +87,14 @@ parallel.LoopingShmemThreadPool = function (options)
     end
  
     return {
-        cdefs = options.cdefs; ordered = options.ordered;
+        ordered = (options or {}).ordered;
         threads = {}; n_threads = 0;
         add = function (self, o)
             self.n_threads = self.n_threads + 1
             self.threads[self.n_threads] = LoopingShmemThread{
-                cdefs=self.cdefs, ctype=o.ctype, ctype_cast=o.ctype_cast,
-                thread_nr=self.n_threads, (o.func or o[1]),
+                ctype=o.ctype, ctype_cast=o.ctype_cast,
+                memsize=o.memsize, thread_nr=self.n_threads,
+                (o.method or o[1]),
             }
         end;
         yield = function (s, ...) return _yield_or_exhaust(s, "yield", ...) end;
