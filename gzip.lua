@@ -5,7 +5,7 @@ local gzip = {--[[
 ]]}
 
 local ffi = require "ffi"
-local zlib = ffi.load "z"; --[[zlib.h]]
+gzip.__zlib = ffi.load "z"; --[[zlib.h]]
 
 ffi.cdef --[[https://www.zlib.net/manual.html#Gzip]] [[
     typedef struct gzFile_s* gzFile;
@@ -19,7 +19,7 @@ ffi.cdef --[[https://www.zlib.net/manual.html#Gzip]] [[
 
 gzip.gzopen = function (filename, mode, logger)
     -- Garbage-collectable gzFile_s* --
-    local FILE = zlib.gzopen(filename, mode)
+    local FILE = gzip.__zlib.gzopen(filename, mode)
     if FILE == nil then
         pcall(function () ffi.cdef "char* strerror(int errnum);" end)
         local strerror_ok, err = pcall(function ()
@@ -31,7 +31,7 @@ gzip.gzopen = function (filename, mode, logger)
             ("gzip.gzopen: %s as %s (%s)"):format(filename, FILE, mode)
         )
         return ffi.gc(FILE, function (FILE)
-            zlib.gzclose(FILE)
+            gzip.__zlib.gzclose(FILE)
             _ = logger and logger(
                 ("gzip.gzclose: %s, was %s (%s)"):format(filename, FILE, mode)
             )
@@ -41,9 +41,9 @@ end
 
 
 gzip.safe_gzopen = gzip.gzopen
-gzip.gzgets = zlib.gzgets
-gzip.gzputs = zlib.gzputs
-gzip.gzputc = zlib.gzputc
+gzip.gzgets = gzip.__zlib.gzgets
+gzip.gzputs = gzip.__zlib.gzputs
+gzip.gzputc = gzip.__zlib.gzputc
 
 
 return gzip

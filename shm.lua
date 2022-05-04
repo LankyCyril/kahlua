@@ -2,7 +2,7 @@ local shm = {}
 
 local ffi = require "ffi"
 local sys = require "kahlua.sys" --[[sys.lua]]
-local rt = ffi.load "rt" --[[/usr/include/x86_64-linux-gnu/sys/mman.h]]
+shm.__rt = ffi.load "rt" --[[/usr/include/x86_64-linux-gnu/sys/mman.h]]
 
 ffi.cdef --[[/usr/include/x86_64-linux-gnu/sys/mman.h]] [[
     void* mmap (void* a, size_t s, int prot, int flags, int fd, long int ofs);
@@ -23,17 +23,17 @@ local MAP_FAILED = ffi.cast("void*", -1) --[[/usr/include/x86_64-linux-gnu/sys/m
 
 
 local MMapGarbageCollectable = function (memsize, fd, id, unlink)
-    local ptr = rt.mmap(NULL, memsize, PROT_READWRITE, MAP_SHARED, fd, 0)
+    local ptr = shm.__rt.mmap(NULL, memsize, PROT_READWRITE, MAP_SHARED, fd, 0)
     ffi.C.close(fd)
     if (ptr == NULL) or (ptr == MAP_FAILED) then
-        rt.shm_unlink(id)
+        shm.__rt.shm_unlink(id)
         error("mmap")
     elseif unlink then
-        rt.shm_unlink(id)
+        shm.__rt.shm_unlink(id)
     end
     return ffi.gc(ptr, function (ptr)
         ffi.C.munmap(ptr, memsize)
-        rt.shm_unlink(id)
+        shm.__rt.shm_unlink(id)
     end)
 end
 
@@ -48,7 +48,7 @@ shm.Shmem = function (memsize, id, unlink)
         id = sys.uuid4()
         pcall(function() io.open("/dev/shm/" .. id, "w"):close() end)
     end
-    local fd = rt.shm_open(id, O_RDWR_NONBLOCK, I_URW)
+    local fd = shm.__rt.shm_open(id, O_RDWR_NONBLOCK, I_URW)
     _ = ((fd or -1) >= 0) or error("shm_open")
     _ = (ffi.C.ftruncate(fd, memsize) >= 0) or error("ftruncate")
     local ptr = MMapGarbageCollectable(memsize, fd, id, unlink) -- XXX
@@ -68,7 +68,8 @@ shm.Shmem = function (memsize, id, unlink)
             return ffi.cast(_cast_type, ptr)
         end;
         destroy = function (self)
-            ffi.C.munmap(ptr, memsize); rt.shm_unlink(id)
+            ffi.C.munmap(ptr, memsize)
+            shm.__rt.shm_unlink(id)
         end;
     }
 end
