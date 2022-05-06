@@ -39,7 +39,8 @@ end
 
 
 shm.Shmem = function (memsize, id, unlink)
-    -- TODO: fall back onto /tmp --
+    -- TODO: docstrings; TODO: fall back onto /tmp --
+ 
     local id, fill, copy, sizeof, typeof =
         id, ffi.fill, ffi.copy, ffi.sizeof, ffi.typeof
     if (not id) and unlink then
@@ -52,9 +53,17 @@ shm.Shmem = function (memsize, id, unlink)
     _ = ((fd or -1) >= 0) or error("shm_open")
     _ = (ffi.C.ftruncate(fd, memsize) >= 0) or error("ftruncate")
     local ptr = MMapGarbageCollectable(memsize, fd, id, unlink) -- XXX
+ 
     return {
         id=id, memsize=memsize, ptr=ptr,
-        clear = function (self) fill(ptr, memsize, 0) end;
+        init = function (self, _cast_type, initializer)
+            local obj = ffi.cast(_cast_type, ptr)
+            obj = initializer()
+            return obj
+        end;
+        cast = function (self, _cast_type)
+            return ffi.cast(_cast_type, ptr)
+        end;
         write = function (self, src, sz)
             sz = sz and ((type(sz) == "number") and sz or sizeof(sz)) or memsize
             copy(ptr, src, sz)
@@ -64,8 +73,8 @@ shm.Shmem = function (memsize, id, unlink)
             copy(dst, ptr, sizeof(_type))
             return dst
         end;
-        cast = function (self, _cast_type)
-            return ffi.cast(_cast_type, ptr)
+        clear = function (self)
+            fill(ptr, memsize, 0)
         end;
         destroy = function (self)
             ffi.C.munmap(ptr, memsize)
