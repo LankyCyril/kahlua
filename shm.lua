@@ -1,4 +1,14 @@
-local shm = {}
+local shm = {--[[
+    Implements Shmem(), a simplistic shared-memory handle.
+ 
+    The focus of this module is to allow interacting with CDATA in a shmem.
+    If your application uses strings / serialized data, you might use lua-luaipc
+    (https://github.com/siffiejoe/lua-luaipc) instead.
+ 
+    Some useful references:
+    - https://gist.github.com/garcia556/8231e844a90457c99cc72e5add8388e4
+    - https://github.com/siffiejoe/lua-luaipc/blob/master/memfile.c
+]]}
 
 local ffi = require "ffi"
 local sys = require "kahlua.sys" --[[sys.lua]]
