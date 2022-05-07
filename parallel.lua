@@ -7,10 +7,12 @@ local shm = require "kahlua.shm" --[[shm.lua]]
 
 local LoopingShmemThread = function (o)
     -- Gets closure from `o.method` (or `o[1]`); runs this closure on `cdata` with each `yield` of LoopingShmemThreadPool --
+ 
     local memsize = o.memsize or ffi.sizeof(o.ctype)
     local shmem = shm.Shmem(memsize)
     local shmem_id = shmem.id
     local ping, pong, lock = effil.channel(), effil.channel(), effil.channel()
+ 
     return {
         thread_nr = o.thread_nr; ping = ping; pong = pong; lock = lock;
         __shmem = shmem; -- need to keep reference, will get GC'd otherwise
@@ -20,6 +22,7 @@ local LoopingShmemThread = function (o)
             local closure = (o.method or o[1])()
             local shmem = shm.Shmem(memsize, shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
+            pong:push(true) -- come-alive signal
             while ping:pop() do
                 closure(cdata)
                 pong:push(true)
@@ -96,6 +99,10 @@ parallel.LoopingShmemThreadPool = function (options)
                 memsize=o.memsize, thread_nr=self.n_threads,
                 (o.method or o[1]),
             }
+            -- wait for come-alive signal, in case it matters in which order
+            -- the threads are initialized (this is unrelated to whether the
+            -- pool itself is ordered later on):
+            self.threads[self.n_threads].pong:pop()
         end;
         yield = function (s, ...) return _yield_or_exhaust(s, "yield", ...) end;
         exhaust = function (s) return _yield_or_exhaust(s, "last") end;
