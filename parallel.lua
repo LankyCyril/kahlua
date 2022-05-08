@@ -30,10 +30,11 @@ local LoopingShmemThread = function (o)
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         effil_thread = effil.thread(function (...)
             local shm = require "kahlua.shm" --[[shm.lua]]
-            local closure = (o.method or o[1])() -- TODO: might fail here => no pong
+            local success, _clorerr = pcall(function () return o[1]() end)
             local shmem = shm.Shmem(memsize, shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
-            _pong:push(true) -- come-alive signal
+            _pong:push(success)
+            local closure = success and _clorerr or _pong:push(_clorerr)
             while _ping:pop() do
                 closure(cdata)
                 _pong:push(true)
@@ -116,12 +117,13 @@ parallel.LoopingShmemThreadPool = function (options) --[[
               returning the closure or inside of it.
             - The closure itself must accept exactly one argument, the shared
               cdata itself, which is both readable and writeable. ]]
-            self.n_threads = self.n_threads + 1
-            self.threads[self.n_threads] = LoopingShmemThread {
+            local thread = LoopingShmemThread {
                 ctype=o.ctype, ctype_cast=o.ctype_cast, memsize=o.memsize,
                 _nr=self.n_threads, (o.method or o[1]),
             }
-            self.threads[self.n_threads]._pong:pop()
+            _ = thread._pong:pop() or error(thread._pong:pop())
+            self.n_threads = self.n_threads + 1
+            self.threads[self.n_threads] = thread
         end;
         yield = function (self, previous_thread, timeout_ms) --[[
             Assumes `previous_thread` has new input data written to its cdata,
