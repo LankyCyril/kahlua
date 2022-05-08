@@ -30,7 +30,7 @@ local LoopingShmemThread = function (o)
         cdata = shmem:cast(o.ctype_cast or o.ctype);
         effil_thread = effil.thread(function (...)
             local shm = require "kahlua.shm" --[[shm.lua]]
-            local closure = (o.method or o[1])()
+            local closure = (o.method or o[1])() -- TODO: might fail here => no pong
             local shmem = shm.Shmem(memsize, shmem_id, "unlink")
             local cdata = shmem:cast(o.ctype_cast or o.ctype)
             _pong:push(true) -- come-alive signal
