@@ -1,6 +1,6 @@
 local gzip = {--[[
     A very thin wrapper around zlib.h; basically does two things:
-    - binds the necessary functions so you don't have to (TODO more functions);
+    - binds the necessary functions so you don't have to;
     - ensures that open handles are closed during garbage collection.
 ]]}
 
@@ -11,11 +11,30 @@ gzip.__zlib = ffi.load "z"; --[[zlib.h]]
 ffi.cdef --[[https://www.zlib.net/manual.html#Gzip]] [[
     typedef struct gzFile_s *gzFile;
     gzFile gzopen(const char *path, const char* mode);
-    char *gzgets(gzFile file, char *buf, int len);
-    int gzputs(gzFile file, const char *s);
-    int gzputc(gzFile file, int c);
     int gzclose(gzFile file);
 ]]
+
+local IMPORTED_FUNCTION_SPECS = { --[[https://www.zlib.net/manual.html#Gzip]]
+    {"char *",       "gzgets",     "(gzFile file, char *buf, int len)"},
+    {"int",          "gzputs",     "(gzFile file, const char *s)"},
+    {"int",          "gzgetc",     "(gzFile file)"},
+    {"int",          "gzungetc",   "(int c, gzFile file)"},
+    {"int",          "gzputc",     "(gzFile file, int c)"},
+    {"int",          "gzflush",    "(gzFile file, int flush)"},
+    {"long",         "gzseek",     "(gzFile file, long offset, int whence)"},
+    {"int",          "gzrewind",   "(gzFile file)"},
+    {"long",         "gztell",     "(gzFile file)"},
+    {"long",         "gzoffset",   "(gzFile file)"},
+    {"int",          "gzeof",      "(gzFile file)"},
+    {"const char *", "gzerror",    "(gzFile file, int *errnum)"},
+    {"void",         "gzclearerr", "(gzFile file)"},
+}
+
+
+for _, spec in ipairs(IMPORTED_FUNCTION_SPECS) do
+    ffi.cdef(table.concat(spec, " ") .. ";")
+    gzip[spec[2]] = gzip.__zlib[spec[2]]
+end
 
 
 gzip.safe_gzopen = function (filename, mode, logger)
@@ -35,12 +54,7 @@ gzip.safe_gzopen = function (filename, mode, logger)
         end)
     end
 end
-
-
 gzip.gzopen = gzip.safe_gzopen
-gzip.gzgets = gzip.__zlib.gzgets
-gzip.gzputs = gzip.__zlib.gzputs
-gzip.gzputc = gzip.__zlib.gzputc
 
 
 return gzip
