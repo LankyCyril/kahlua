@@ -12,6 +12,7 @@ local shm = {--[[
 
 local ffi = require "ffi"
 local sys = require "kahlua.sys" --[[sys.lua]]
+_ = (ffi.os == "Linux") or error("kahlua.shm: only Linux is supported")
 shm.__rt = ffi.load "rt" --[[/usr/include/x86_64-linux-gnu/sys/mman.h]]
 
 ffi.cdef --[[/usr/include/x86_64-linux-gnu/sys/mman.h]] [[
@@ -33,6 +34,7 @@ local MAP_FAILED = ffi.cast("void*", -1) --[[/usr/include/x86_64-linux-gnu/sys/m
 
 
 local MMapGarbageCollectable = function (memsize, fd, id, unlink)
+    -- Memory-maps file in /dev/shm to a pointer; attaches a garbage collector --
     local ptr = shm.__rt.mmap(NULL, memsize, PROT_READWRITE, MAP_SHARED, fd, 0)
     ffi.C.close(fd)
     if (ptr == NULL) or (ptr == MAP_FAILED) then
@@ -49,7 +51,8 @@ end
 
 
 shm.Shmem = function (memsize, id, unlink)
-    -- TODO: docstrings; TODO: fall back onto /tmp --
+    -- Creates (if id==nil) or attaches to (with an existing id) shared memory block; unlinks underlying file if `unlink` --
+    -- TODO: fall back onto /tmp
  
     local id, fill, copy, sizeof, typeof =
         id, ffi.fill, ffi.copy, ffi.sizeof, ffi.typeof

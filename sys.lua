@@ -1,4 +1,8 @@
-local sys = {}
+local sys = {--[[
+    Defines helper methods.
+    Seeds math.random.
+    Imports a number of stlib C functions (`kahlua.sys.C`).
+]]}
 
 local ffi = require "ffi"
 local random = math.random
@@ -12,13 +16,14 @@ sys.gcrun = function (main, ...)
     local success, returncode = pcall(function () return main(unpack(args)) end)
     collectgarbage()
     collectgarbage()
-    _ = success and os.exit(returncode or 0) error(returncode)
+    _ = success and os.exit(returncode or 0) or error(returncode)
 end
 
 
 sys.C = {
-    strcpy = ffi.cdef("char* strcpy(char* d, const char* s)") or ffi.C.strcpy;
-    strlen = ffi.cdef("size_t strlen(const char* s);") or ffi.C.strlen;
+    strerror = ffi.cdef "char *strerror(int errnum);" or ffi.C.strerror;
+    strcpy = ffi.cdef("char *strcpy(char *d, const char *s)") or ffi.C.strcpy;
+    strlen = ffi.cdef("size_t strlen(const char *s);") or ffi.C.strlen;
 }
 
 
@@ -32,7 +37,7 @@ end
 
 
 sys.is_64bit_math_valid = function ()
-    -- Check that ffi/bitop operations return correct 64-bit values --
+    -- ROUGHLY check that ffi/bitop operations return correct 64-bit values --
     local error_mask = "kahlua.sys.is_64bit_math_valid: error: %s"
     local a = bit.lshift(ffi.new("uint64_t", 1), 31) - 1
     local b = bit.lshift(a, 30) + bit.rshift(a, 3) - 4096
