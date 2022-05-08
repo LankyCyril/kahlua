@@ -27,6 +27,12 @@ sys.C = {
 }
 
 
+sys.Cerror = function (prefix)
+    -- Retrieve errno and its strerror, and throw as Lua error --
+    error("[ffi] " .. prefix .. ": " .. ffi.string(sys.C.strerror(ffi.errno())))
+end
+
+
 sys.uuid4 = function ()
     -- Quick generation of UUID4 --
     return ("%08x-%04x-4%03x-%x%03x-%012x"):format(

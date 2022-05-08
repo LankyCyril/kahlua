@@ -22,7 +22,7 @@ gzip.safe_gzopen = function (filename, mode, logger)
     -- Garbage-collectable gzFile_s* --
     local FILE = gzip.__zlib.gzopen(filename, mode)
     if FILE == nil then
-        error("gzip.gzopen: " .. ffi.string(sys.C.strerror(ffi.errno())))
+        sys.Cerror("gzip.gzopen")
     else
         _ = logger and logger(
             ("gzip.gzopen: %s as %s (%s)"):format(filename, FILE, mode)

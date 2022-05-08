@@ -39,7 +39,7 @@ local MMapGarbageCollectable = function (memsize, fd, id, unlink)
     ffi.C.close(fd)
     if (ptr == NULL) or (ptr == MAP_FAILED) then
         shm.__rt.shm_unlink(id)
-        error("mmap")
+        sys.Cerror("kahlua.shm.MMapGarbageCollectable: rt.mmap()")
     elseif unlink then
         shm.__rt.shm_unlink(id)
     end
@@ -63,8 +63,10 @@ shm.Shmem = function (memsize, id, unlink)
         pcall(function() io.open("/dev/shm/" .. id, "w"):close() end)
     end
     local fd = shm.__rt.shm_open(id, O_RDWR_NONBLOCK, I_URW)
-    _ = ((fd or -1) >= 0) or error("shm_open")
-    _ = (ffi.C.ftruncate(fd, memsize) >= 0) or error("ftruncate")
+    _ = ((fd or -1) >= 0)
+        or sys.Cerror("kahlua.shm.Shmem: rt.shm_open()")
+    _ = (ffi.C.ftruncate(fd, memsize) >= 0)
+        or sys.Cerror("kahlua.shm.Shmem: ftruncate()")
     local ptr = MMapGarbageCollectable(memsize, fd, id, unlink) -- XXX
  
     return {
