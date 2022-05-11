@@ -20,10 +20,25 @@ sys.gcrun = function (main, ...)
 end
 
 
+ffi.cdef [[
+    struct _IO_FILE;
+    typedef struct _IO_FILE FILE;
+    extern FILE *stdout;
+    extern FILE *stderr;
+]]
+
+
 sys.C = {
     strerror = ffi.cdef "char *strerror(int errnum);" or ffi.C.strerror;
-    strcpy = ffi.cdef("char *strcpy(char *d, const char *s)") or ffi.C.strcpy;
-    strlen = ffi.cdef("size_t strlen(const char *s);") or ffi.C.strlen;
+    strcpy = ffi.cdef "char *strcpy(char *d, const char *s)" or ffi.C.strcpy;
+    strlen = ffi.cdef "size_t strlen(const char *s);" or ffi.C.strlen;
+    putchar = ffi.cdef "int putchar(int c);" or ffi.C.putchar;
+    puts = ffi.cdef "int puts(const char *s);" or ffi.C.puts;
+    fputc = ffi.cdef "int fputc(int c, FILE *stream);" or ffi.C.fputc;
+    fputs = ffi.cdef "int fputs(const char *s, FILE *stream);" or ffi.C.fputs;
+    printf = ffi.cdef "int printf(const char *format, ...);" or ffi.C.printf;
+    stdout = ffi.C.stdout;
+    stderr = ffi.C.stderr;
 }
 
 
