@@ -57,6 +57,14 @@ sys.uuid4 = function ()
 end
 
 
+sys.Trasher = function (__gc)
+    -- Lua 5.1: register arbitrary garbage collection routines for when a `Trasher` object loses scope --
+    local trasher = newproxy(true)
+    getmetatable(trasher).__gc = __gc
+    return trasher
+end
+
+
 sys.is_64bit_math_valid = function ()
     -- ROUGHLY check that ffi/bitop operations return correct 64-bit values --
     local error_mask = "kahlua.sys.is_64bit_math_valid: error: %s"
