@@ -74,11 +74,10 @@ shm.Shmem = function (memsize, id, unlink)
         init = function (self, _cast_type, initializer, byref_aka_inplace)
             local obj = ffi.cast(_cast_type, ptr)
             if byref_aka_inplace then
-                initializer(obj)
+                return obj, initializer(obj)
             else
-                obj = initializer()
+                return initializer()
             end
-            return obj
         end;
         cast = function (self, _cast_type)
             return ffi.cast(_cast_type, ptr)
