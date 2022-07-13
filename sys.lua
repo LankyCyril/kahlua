@@ -16,7 +16,19 @@ sys.gcrun = function (main, ...)
     local success, returncode = pcall(function () return main(unpack(args)) end)
     collectgarbage()
     collectgarbage()
-    _ = success and os.exit(returncode or 0) or error(returncode)
+    if success then
+        os.exit(returncode or 0)
+    elseif returncode:match("KAHLUA_GCRUN_ABORT ") then
+        os.exit(tonumber(returncode:match("%d+")) or 1)
+    else
+        error(returncode)
+    end
+end
+
+
+sys.exit = function (returncode)
+    -- Trigger `os.exit` with preceding garbage collection --
+    error("KAHLUA_GCRUN_ABORT " .. returncode)
 end
 
 
