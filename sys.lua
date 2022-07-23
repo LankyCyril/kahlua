@@ -10,7 +10,7 @@ local unpack = unpack or table.unpack
 math.randomseed(os.time() + os.clock())
 
 
-sys.gcrun = function (main, ...)
+sys.gcrun = function (main, callback, ...)
     -- Run entrypoint function, collect garbage explicitly, exit with result of entrypoint function --
     local args = {...}
     local success, returncode = pcall(function () return main(unpack(args)) end)
@@ -20,6 +20,10 @@ sys.gcrun = function (main, ...)
         os.exit(returncode or 0)
     elseif returncode:match("KAHLUA_GCRUN_ABORT ") then
         os.exit(tonumber(returncode:match("%d+")) or 1)
+    elseif type(callback) == "function" then
+        callback(returncode)
+    elseif type(callback) == "number" then
+        error(returncode, callback)
     else
         error(returncode)
     end
