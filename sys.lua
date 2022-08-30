@@ -53,6 +53,7 @@ sys.C = {
     fputc = ffi.cdef "int fputc(int c, FILE *stream);" or ffi.C.fputc;
     fputs = ffi.cdef "int fputs(const char *s, FILE *stream);" or ffi.C.fputs;
     printf = ffi.cdef "int printf(const char *format, ...);" or ffi.C.printf;
+    free = ffi.cdef "void free(void *ptr);" or ffi.C.free;
     stdout = ffi.C.stdout;
     stderr = ffi.C.stderr;
 }
