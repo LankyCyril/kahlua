@@ -164,4 +164,30 @@ sys.printf_q = function (s)
 end
 
 
+ffi.cdef [[
+    FILE *freopen(const char *fn, const char *mode, FILE *stream);
+    int dup(int oldfd);
+    int dup2(int oldfd, int newfd);
+    int fflush(FILE *stream);
+    int fileno(FILE *stream);
+    int close(int fd);
+    void clearerr(FILE *stream);
+    long ftell(FILE *stream);
+    int fseek(FILE *stream, long offset, int whence);
+]]
+sys.WithRedirectedStdout = function (sink_filename, func)
+    -- `freopen` stdout to `sink_filename`, run `func()`, restore normal stdout --
+    ffi.C.fflush(ffi.C.stdout)
+    local original_stdout_offset = ffi.C.ftell(ffi.C.stdout)
+    local SYSTEM_STDOUT_FD = ffi.C.dup(ffi.C.fileno(ffi.C.stdout))
+    ffi.C.freopen(sink_filename, "w", ffi.C.stdout)
+    func()
+    ffi.C.fflush(ffi.C.stdout)
+    ffi.C.dup2(SYSTEM_STDOUT_FD, ffi.C.fileno(ffi.C.stdout))
+    ffi.C.close(SYSTEM_STDOUT_FD)
+    ffi.C.clearerr(ffi.C.stdout)
+    ffi.C.fseek(ffi.C.stdout, original_stdout_offset, 0)
+end
+
+
 return sys
